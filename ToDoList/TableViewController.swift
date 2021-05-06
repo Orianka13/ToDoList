@@ -6,10 +6,11 @@
 //
 
 import UIKit
+import CoreData
 
 class TableViewController: UITableViewController {
     
-    var tasks: [String] = []
+    var tasks: [Task] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,8 +23,8 @@ class TableViewController: UITableViewController {
         
         let saveAction = UIAlertAction(title: "Save", style: .default) { action in
             let tf = alertController.textFields?.first
-            if let newTask = tf?.text {
-                self.tasks.insert(newTask, at: 0)
+            if let newTaskTitle = tf?.text {
+                self.saveTask(withTitle: newTaskTitle)
                 self.tableView.reloadData()
             }
         }
@@ -36,6 +37,28 @@ class TableViewController: UITableViewController {
         alertController.addAction(cancelAction)
         
         present(alertController, animated: true, completion: nil)
+    }
+    
+    private func saveTask(withTitle title: String){
+        //получаем контекст
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        let context = appDelegate.persistentContainer.viewContext
+        
+        //добираемся до сущности:
+        guard let entity = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
+        
+        //получаем task объект
+        let taskObject = Task(entity: entity, insertInto: context)
+        
+        //помещаем заголовок в taskObject
+        taskObject.title = title
+        
+        //сохраняем контекст чтобы изменения попали в БД
+        do {
+            try context.save()
+        } catch let error as NSError {
+            print(error.localizedDescription)
+        }
     }
     
 
@@ -52,8 +75,9 @@ class TableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-
-        cell.textLabel?.text = tasks[indexPath.row]
+        
+        let task = tasks[indexPath.row]
+        cell.textLabel?.text = task.title
 
         return cell
     }
