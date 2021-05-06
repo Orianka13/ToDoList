@@ -11,10 +11,45 @@ import CoreData
 class TableViewController: UITableViewController {
     
     var tasks: [Task] = []
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        let context = getContext()
+        
+        //создаем запрос по которому сможем получить хранимые объекты:
+        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
+        
+        //получаем наши объекты
+        do {
+            tasks = try context.fetch(fetchRequest)
+        } catch let error as NSError {
+            print(error.localizedDescription)
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
+    }
+    
+    
+    @IBAction func deleteAll(_ sender: UIBarButtonItem) {
+        let context = getContext()
+        let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
+        
+        if let objects = try? context.fetch(fetchRequest){
+            for object in objects {
+                context.delete(object)
+            }
+        }
+        
+        do {
+            try context.save()
+            //tasks.append(taskObject)
+            tableView.reloadData()
+        } catch let error as NSError {
+            print(error.localizedDescription)
+        }
     }
     
     @IBAction func saveTask(_ sender: UIBarButtonItem) {
@@ -39,10 +74,15 @@ class TableViewController: UITableViewController {
         present(alertController, animated: true, completion: nil)
     }
     
+    private func getContext() -> NSManagedObjectContext {
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        return appDelegate.persistentContainer.viewContext
+    }
+    
+    
     private func saveTask(withTitle title: String){
         //получаем контекст
-        let appDelegate = UIApplication.shared.delegate as! AppDelegate
-        let context = appDelegate.persistentContainer.viewContext
+        let context = getContext()
         
         //добираемся до сущности:
         guard let entity = NSEntityDescription.entity(forEntityName: "Task", in: context) else { return }
@@ -56,6 +96,8 @@ class TableViewController: UITableViewController {
         //сохраняем контекст чтобы изменения попали в БД
         do {
             try context.save()
+            //tasks.append(taskObject)
+            tasks.insert(taskObject, at: 0)
         } catch let error as NSError {
             print(error.localizedDescription)
         }
